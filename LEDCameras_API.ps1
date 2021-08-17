@@ -480,13 +480,9 @@ New-item -Path $homeDir -Name "index_logged.php" -ItemType file -Value $checkSes
 Add-Content "$homeDir\index_logged.php" -Value (Get-Content $htmlSiteNew) -Force
 
 # Refresh html
-$chromeProc = Get-Process chrome -ea SilentlyContinue
-if ($null -ne $chromeProc) {
-  $chromeProc | % { Stop-Process $_.Id -Force -ErrorAction SilentlyContinue }
-}
-
+Get-Process chrome -ea SilentlyContinue | Stop-Process -Force
+sleep -Seconds 2
 Start-Process cmd.exe -WindowStyle Minimized -ArgumentList "/c",  "C:\SN_Scripts\LedCameras\RunChrome.bat"
-
 $error.Clear()
 
 # Upload to server
