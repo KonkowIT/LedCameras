@@ -354,14 +354,20 @@ foreach ($led in $servers) {
         
           $fileList = ($session.ListDirectory("/screennetwork/player")).Files
           $fileList | Where-Object { $_.Name -eq "screenshot_lan_camera.jpg" } | ForEach-Object {
-            if ($_.LastWriteTime -gt ((get-date).AddMinutes(-30))) {
-              Write-host "`nDownloading screenshot from:"$sn" - "$snLoc
-              $result = $session.GetFiles("/screennetwork/player/screenshot_lan_camera.jpg", "$ssDirDownloaded\screenshot_lan_camera.jpg", $False, $transferOptions)
-              Write-host "Successfully completed: $($result.IsSuccess)"
+            if (!(Test-path $_.FullName)) {
+              Write-host "`nBrak zdjecia z kamery: $sn - $snLoc" -ForegroundColor Red
+              copy-item "C:\SN_Scripts\LedCameras\errorNew.jpg" -Destination "$ssDirDownloaded\screenshot_lan_camera.jpg" -Force 
             }
             else {
-              Write-host "`nBrak nowego zrzutu ekranu: $sn - $snLoc" -ForegroundColor Red
-              copy-item "C:\SN_Scripts\LedCameras\errorNew.jpg" -Destination "$ssDirDownloaded\screenshot_lan_camera.jpg" -Force 
+              if ($_.LastWriteTime -gt ((get-date).AddMinutes(-30))) {
+                Write-host "`nDownloading screenshot from:"$sn" - "$snLoc
+                $result = $session.GetFiles("/screennetwork/player/screenshot_lan_camera.jpg", "$ssDirDownloaded\screenshot_lan_camera.jpg", $False, $transferOptions)
+                Write-host "Successfully completed: $($result.IsSuccess)"
+              }
+              else {
+                Write-host "`nBrak nowego zdjecia z kamery: $sn - $snLoc" -ForegroundColor Red
+                copy-item "C:\SN_Scripts\LedCameras\errorNew.jpg" -Destination "$ssDirDownloaded\screenshot_lan_camera.jpg" -Force 
+              }
             }
           }        
         }
@@ -474,15 +480,12 @@ New-item -Path $homeDir -Name "index_logged.php" -ItemType file -Value $checkSes
 Add-Content "$homeDir\index_logged.php" -Value (Get-Content $htmlSiteNew) -Force
 
 # Refresh html
-if ($null -ne (Get-Process chrome -ea SilentlyContinue)) {
-  Write-Output "`nRefreshing page"
-  $WindowsScriptShell.AppActivate('LedCameras - Home')
-  $WindowsScriptShell.SendKeys('{F5}')
+$chromeProc = Get-Process chrome -ea SilentlyContinue
+if ($null -ne $chromeProc) {
+  $chromeProc | % { Stop-Process $_.Id -Force -ErrorAction SilentlyContinue }
 }
-Else {
-  Write-Output "`nChrome is not started!`n Launching..."
-  Start-Process cmd.exe -WindowStyle Minimized -ArgumentList "/c",  "C:\SN_Scripts\LedCameras\RunChrome.bat"
-}
+
+Start-Process cmd.exe -WindowStyle Minimized -ArgumentList "/c",  "C:\SN_Scripts\LedCameras\RunChrome.bat"
 
 $error.Clear()
 
